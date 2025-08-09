@@ -5,8 +5,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define BLANK "0"
-#define CHAR  "1"
+#include "color.h"
+
+#define BLANK 		"0"
+#define CHAR  		"1"
+#define GREEN 		32
+#define DEFAULT_COLOR 	 0
 
 void graceful_exit(int** board, int** next, int** prev,
 		   int** prev_prev, int rows){
@@ -67,7 +71,9 @@ void print_board(int** board, const int sz){
 			if(board[i][j] == 0){
 				printf(BLANK);
 			} else {
+				change_color(GREEN);
 				printf(CHAR);
+				change_color(DEFAULT_COLOR);
 			}
 
 			if(j < sz - 1)
@@ -116,7 +122,6 @@ int** event_loop(int** board, const int rows, const int cols){
 	int** next = malloc(rows*sizeof(int *));
 	int** prev = malloc(rows*sizeof(int *));
 	int** prev_prev = malloc(rows*sizeof(int *));
-
 
 	for(int i = 0; i < rows; i++){
 		next[i] = malloc(cols*sizeof(int));
@@ -208,6 +213,8 @@ int main(int argc, char** argv){
 		board[i] = malloc(cols*sizeof(int));
 	}
 
+	// Board is filled with random values
+	// I will allow the user to choose the values SOONTM
 	init_board(board, rows, cols);
 
 	// the only reason this returns int** is so that i can
