@@ -12,6 +12,12 @@
 #define GREEN 		32
 #define DEFAULT_COLOR 	 0
 
+void usage(void){	
+	puts("Usage: "
+		"./main <rows> <cols> <update interval> (seconds)");
+	exit(0);
+}
+
 void graceful_exit(int** board, int** next, int** prev,
 		   int** prev_prev, int rows){
 
@@ -112,7 +118,8 @@ int nb_count(int** board, int rows, int cols,
 	return nb;
 }
 
-int** event_loop(int** board, const int rows, const int cols){
+int** event_loop(int** board, const int rows, const int cols,
+		const float update_interval){
 
 	// This is so inefficient but it works for now ig
 	int** next = malloc(rows*sizeof(int *));
@@ -133,16 +140,23 @@ int** event_loop(int** board, const int rows, const int cols){
 
 	int gen = 0;
 	while(1){
-		sleep(1);
+		usleep(update_interval * 1000 * 1000); 
 		clear();
+
+		// Print current game state
+		printf("Board size: %ix%i\n", rows, cols);
 		printf("Generation: %i\n", ++gen);
+		printf("Simulation speed: "
+			"%.3f seconds per generation\n\n", update_interval);
 		print_board(board, rows);
 
+		// Halt if every cell is dead
 		if(all_zeros(board, rows, cols)){
-			printf("Everyone died\n");
+			puts("Everyone died\n");
 			graceful_exit(board, next, prev, prev_prev, rows);
 		}
 
+		// Update game state
 		for(int i = 0; i < rows; i++){
 			for(int j = 0; j < cols; j++){
 
@@ -185,8 +199,8 @@ int** event_loop(int** board, const int rows, const int cols){
 int main(int argc, char** argv){
 
 	srand(time(NULL));
-	if(argc < 3){
-		die("Not enough arguments");
+	if(argc < 4){
+		usage();
 	}
 
 	char* end;
@@ -199,6 +213,8 @@ int main(int argc, char** argv){
 	if(*end != '\0'){
 		die("couldn't convert cols to long");
 	}
+
+	float update_interval = strtof(argv[3], &end);
 
 	if(rows != cols) die("Only n*n supported (for now)");
 
@@ -216,10 +232,7 @@ int main(int argc, char** argv){
 	// the only reason this returns int** is so that i can
 	// pass it to graceful_exit
 	// this cannot be a smart approach but i'm too drunk to think
-	int** next = event_loop(board, rows, cols);
-
-	// graceful_exit(board, next, prev, prev_prev, rows);
-
+	int** next = event_loop(board, rows, cols, update_interval);
 	
         return 0;
 }
