@@ -60,10 +60,6 @@ bool all_zeros(int** board, int rows, int cols){
 	return true;
 }
 
-void cell_swap_state(int* x){
-	*x = *x == 1 ? 0 : 1;
-}
-
 void print_board(int** board, const int sz){
 
 	for(int i = 0; i < sz; i++){
