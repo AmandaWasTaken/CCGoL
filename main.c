@@ -1,22 +1,30 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-void graceful_exit(int** board, int** next, int rows){
+#define BLANK "0"
+#define CHAR  "1"
+
+void graceful_exit(int** board, int** next, int** prev,
+		   int** prev_prev, int rows){
 
 	for(int i = 0; i < rows; i++){
 		free(board[i]);
 		free(next[i]);
+		free(prev[i]);
+		free(prev_prev[i]);
 	}
 	free(board);
 	free(next);
+	free(prev);
+	free(prev_prev);
 	exit(0);
 }
 
 void die(const char* restrict e){
-
 	fprintf(stderr, "%s\n", e);
 	exit(1);
 } 
@@ -39,6 +47,7 @@ bool is_alive(int x){
 }
 
 bool all_zeros(int** board, int rows, int cols){
+
 	for(int i = 0; i < rows; i++){
 		for(int j = 0; j < cols; j++){
 			if(board[i][j] != 0) return false;
@@ -56,17 +65,26 @@ void print_board(int** board, const int sz){
 	for(int i = 0; i < sz; i++){
 		for(int j = 0; j < sz; j++){
 			if(board[i][j] == 0){
-				printf("-");
+				printf(BLANK);
 			} else {
-				printf("I");
+				printf(CHAR);
 			}
 
-			//printf("%i", board[i][j]);
 			if(j < sz - 1)
 				printf(" ");
 		}
 	printf("\n");
 	}
+}
+
+bool is_stuck(int** next, int** prev_prev, int rows, int cols){
+
+	for(int i = 0; i < rows; i++){
+		for(int j = 0; j < cols; j++){
+			if(next[i][j] != prev_prev[i][j]) return false;
+		}
+	}
+	return true;
 }
 
 int nb_count(int** board, int rows, int cols,
@@ -94,14 +112,26 @@ int nb_count(int** board, int rows, int cols,
 
 int** event_loop(int** board, const int rows, const int cols){
 
+	// This is so inefficient but it works for now ig
 	int** next = malloc(rows*sizeof(int *));
+	int** prev = malloc(rows*sizeof(int *));
+	int** prev_prev = malloc(rows*sizeof(int *));
+
+
 	for(int i = 0; i < rows; i++){
 		next[i] = malloc(cols*sizeof(int));
+		prev[i] = malloc(cols*sizeof(int));
+		prev_prev[i] = malloc(cols*sizeof(int));
+	}
+
+	for(int i = 0; i < rows; i++){
+		for(int j = 0; j < rows; j++){
+			prev[i][j] = board[i][j];
+		}
 	}
 
 	int gen = 0;
 	while(1){
-		// getchar(); // dev suspend
 		sleep(1);
 		clear();
 		printf("Generation: %i\n", ++gen);
@@ -109,7 +139,7 @@ int** event_loop(int** board, const int rows, const int cols){
 
 		if(all_zeros(board, rows, cols)){
 			printf("Everyone died\n");
-			graceful_exit(board, next, rows);
+			graceful_exit(board, next, prev, prev_prev, rows);
 		}
 
 		for(int i = 0; i < rows; i++){
@@ -131,12 +161,23 @@ int** event_loop(int** board, const int rows, const int cols){
 			}
 		}
 
+		// Check for looping
+		if(is_stuck(next, prev_prev, rows, cols)){
+			puts("Loop detected, stopping sim\n");
+			graceful_exit(board, next, prev, prev_prev, rows);
+		}
+
+		// Shift prev state
 		for(int i = 0; i < rows; i++){
 			for(int j = 0; j < cols; j++){
+				prev_prev[i][j] = prev[i][j];
+				prev[i][j] = board[i][j];
 				board[i][j] = next[i][j];
 			}
 		}
 	}
+	// we don't actually need to return here since we exit early
+	// but i'm too lazy to change that rn
 	return next;
 }
 
@@ -174,7 +215,7 @@ int main(int argc, char** argv){
 	// this cannot be a smart approach but i'm too drunk to think
 	int** next = event_loop(board, rows, cols);
 
-	graceful_exit(board, next, rows);
+	// graceful_exit(board, next, prev, prev_prev, rows);
 
 	
         return 0;
